@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  # nginx_proxy:
+  #   image: nginxproxy/nginx-proxy:0.9.3
+  #   container_name: nginx_proxy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - /var/run/docker.sock:/tmp/docker.sock:ro
+  #     - certs:/etc/nginx/certs:ro
+  #     - vhost:/etc/nginx/vhost.d
+  #     - html:/usr/share/nginx/html
+
+  hardhat_node:
+    image: voidxnull/zp-hardhat-node
+    container_name: hardhat_node
+    ports:
+      - "8545:8545"
+
+  redis:
+    image: redis:6.2.6
+    container_name: redis
+    command: [ redis-server, --appendonly, 'yes' ]
+    restart: always
+
+  relayer:
+    image: voidxnull/zeropool-relayer:0.1.29
+    container_name: relayer
+    depends_on:
+      - redis
+      - hardhat_node
+    environment:
+      - RPC_URL=http://hardhat_node:8545
+      - POOL_ADDRESS=0x1CAD0811b6f99127B990eb0aB07f6C578C39Da85
+      - TOKEN_ADDRESS=0x57E4B1Ef5FE77a0Ef9DD72a1e30B88426312B3D4
+      - RELAYER_ADDRESS_PRIVATE_KEY=0x66e837b617d2049c65c6220a2b86cf45830f4ccaf5a1cd1e1a8f95d61c19397e
+      - RELAYER_REDIS_URL=redis:6379
+      - PORT=80
+      - TX_PROOFS_DIR=./tx_proofs
+      - RELAYER_FEE=0
+      - MAX_NATIVE_AMOUNT_FAUCET=0
+      - RELAYER_GAS_LIMIT=2000000
+      # - GAS_PRICE_FALLBACK=
+      # - GAS_PRICE_UPDATE_INTERVAL=
+      - GAS_PRICE_ESTIMATION_TYPE=web3
+      - RELAYER_LOG_LEVEL=debug
+      - VIRTUAL_HOST=test.relayer.zeropool.network
+      - LETSENCRYPT_HOST=test.relayer.zeropool.network
+      - LETSENCRYPT_EMAIL=mail@test.com
+    volumes:
+      - /root/params:/app/zp-relayer/params
+      - ./relayer_tree:/app/tree.db
+      - ./relayer_txs:/app/txs.db
+    ports:
+      - "80:80"
+
+volumes:
+  conf:
+  vhost:
+  html:
+  certs:
+  acme:

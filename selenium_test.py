@@ -1,8 +1,11 @@
 import os
 from selenium import webdriver
+from dotenv import load_dotenv
+
+load_dotenv()
 
 driver = webdriver.Chrome()
-driver.get(os.environ['CLIENT_URL'])
+driver.get(os.environ['CLIENT_URL'] or "http://localhost:3000")
 
 RPC_URL = os.environ['RPC_URL']
 POOL_ADDRESS = os.environ['POOL_ADDRESS']

@@ -51,6 +51,8 @@ class Context {
   }
 
   async deposit(amount: string): Promise<{ approveTime: number, txTime: number, fullTime: number }> {
+    await this.evmClient.mint(this.tokenAddress, amount);
+
     const [, approveTime] = await measureTime(async () => {
       await this.evmClient.approve(this.tokenAddress, this.poolAddress, amount);
     });
