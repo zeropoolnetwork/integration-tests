@@ -51,8 +51,6 @@ services:
       - LETSENCRYPT_EMAIL=mail@test.com
     volumes:
       - /root/params:/app/zp-relayer/params
-      - ./relayer_tree:/app/tree.db
-      - ./relayer_txs:/app/txs.db
     ports:
       - "80:80"
 

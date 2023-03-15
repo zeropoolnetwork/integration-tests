@@ -36,4 +36,16 @@ res = driver.execute_async_script(
     MNEMONIC,
 )
 
-print(f"Received message: {res}")
+print("Results:")
+print("\nDeposit Times:")
+print(f"  Approve Time: {res['depositTimes']['approveTime']} ms")
+print(f"  Tx Time: {res['depositTimes']['txTime']} ms")
+print(f"  Confirmation Time: {res['depositTimes']['fullTime']} ms")
+
+print("\nTransfer Times:")
+print(f"  Tx Time: {res['transferTimes']['txTime']} ms")
+print(f"  Confirmation Time: {res['transferTimes']['fullTime']} ms")
+
+print("\nWithdraw Times:")
+print(f"  Tx Time: {res['withdrawTimes']['txTime']} ms")
+print(f"  Confirmation Time: {res['withdrawTimes']['fullTime']} ms")
