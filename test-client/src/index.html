@@ -3,11 +3,42 @@
 
 <head>
   <meta charset="utf-8" />
-  <script src="./env.js"></script>
 </head>
 
 <body>
-  <h1>Test</h1>
+  <form id="create-context-form">
+    <label for="rpc-url">RPC URL:</label>
+    <input type="text" id="rpc-url" name="rpcUrl" required><br>
+
+    <label for="pool-address">Pool Address:</label>
+    <input type="text" id="pool-address" name="poolAddress" required><br>
+
+    <label for="token-address">Token Address:</label>
+    <input type="text" id="token-address" name="tokenAddress" required><br>
+
+    <label for="relayer-url">Relayer URL:</label>
+    <input type="text" id="relayer-url" name="relayerUrl" required><br>
+
+    <label for="mnemonic">Mnemonic:</label>
+    <input type="password" id="mnemonic" name="mnemonic" required><br>
+
+    <button type="submit">Create Context</button>
+  </form>
+  <script>
+    const form = document.getElementById('create-context-form');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); // prevent form from submitting normally
+
+      const rpcUrl = document.getElementById('rpc-url').value;
+      const poolAddress = document.getElementById('pool-address').value;
+      const tokenAddress = document.getElementById('token-address').value;
+      const relayerUrl = document.getElementById('relayer-url').value;
+      const mnemonic = document.getElementById('mnemonic').value;
+
+      const res = await global.start(rpcUrl, poolAddress, tokenAddress, relayerUrl, mnemonic);
+      console.log('Test finished:', res);
+    });
+  </script>
 </body>
 
 </html>
