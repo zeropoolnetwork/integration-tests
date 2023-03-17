@@ -29,11 +29,11 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault(); // prevent form from submitting normally
 
-      const rpcUrl = document.getElementById('rpc-url').value;
-      const poolAddress = document.getElementById('pool-address').value;
-      const tokenAddress = document.getElementById('token-address').value;
-      const relayerUrl = document.getElementById('relayer-url').value;
-      const mnemonic = document.getElementById('mnemonic').value;
+      const rpcUrl = document.getElementById('rpc-url').value || process.env.RPC_URL;
+      const poolAddress = document.getElementById('pool-address').value || process.env.POOL_ADDRESS;
+      const tokenAddress = document.getElementById('token-address').value || process.env.TOKEN_ADDRESS;
+      const relayerUrl = document.getElementById('relayer-url').value || process.env.RELAYER_URL;
+      const mnemonic = document.getElementById('mnemonic').value || process.env.MNEMONIC;
 
       const res = await global.start(rpcUrl, poolAddress, tokenAddress, relayerUrl, mnemonic);
       console.log('Test finished:', res);

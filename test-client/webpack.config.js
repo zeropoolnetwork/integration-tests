@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin').CleanWebpackPlugin;
 
@@ -40,6 +41,11 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new CopyPlugin({
+      patterns: [
+        { from: '*', context: 'build-workers' }
+      ],
+    }),
     new HtmlWebpackPlugin({
       template: 'src/index.html',
       filename: 'index.html',
@@ -47,6 +53,13 @@ module.exports = {
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
       process: 'process'
+    }),
+    new webpack.EnvironmentPlugin({
+      CONTRACT_ADDRESS: null,
+      TOKEN_ADDRESS: null,
+      RELAYER_URL: null,
+      RPC_URL: null,
+      MNENOMIC: null,
     }),
   ],
   ignoreWarnings: [/Failed to parse source map/],

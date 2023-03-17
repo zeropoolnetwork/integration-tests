@@ -31,23 +31,23 @@ Returns:
     depositTimes,
     transferTimes,
     withdrawTimes,
-    shieldedBalanceAfterDeposit,
-    publicBalanceAfterDeposit,
-    shieldedBalanceAfterTransfer,
-    publicBalanceAfterTransfer,
-    shieldedBalanceAfterWithdraw,
-    publicBalanceAfterWithdraw,
 """
 res = driver.execute_async_script(
     "const callback = arguments[arguments.length - 1];"
-    "const result = await window.start(...arguments);"
-    "callback(result);",
+    "try {"
+    "  const result = await window.start(...arguments);"
+    "  callback(result);"
+    "} catch (e) {"
+    "  callback(e);"
+    "}",
     RPC_URL,
     POOL_ADDRESS,
     TOKEN_ADDRESS,
     RELAYER_URL,
     MNEMONIC,
 )
+
+print("res:", res)
 
 logs = driver.get_log("browser")
 print("Browser logs:")

@@ -28,6 +28,7 @@ services:
   relayer:
     image: voidxnull/zeropool-relayer:0.1.29
     container_name: relayer
+    restart: always
     depends_on:
       - redis
       - hardhat_node
