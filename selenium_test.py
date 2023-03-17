@@ -1,10 +1,22 @@
 import os
+
 from selenium import webdriver
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from dotenv import load_dotenv
 
 load_dotenv()
 
-driver = webdriver.Chrome()
+capabilities = DesiredCapabilities.CHROME
+capabilities["goog:loggingPrefs"] = {"browser": "ALL"}
+options = webdriver.ChromeOptions()
+# options.add_argument("--headless")
+options.add_argument("--disable-web-security")
+options.add_argument("--allow-running-insecure-content")
+options.add_argument("--enable-features=SharedArrayBuffer")
+driver = webdriver.Chrome(options=options, desired_capabilities=capabilities)
+
+driver.set_script_timeout(24 * 60 * 60)
+
 driver.get(os.environ['CLIENT_URL'] or "http://localhost:3000")
 
 RPC_URL = os.environ['RPC_URL']
@@ -12,6 +24,7 @@ POOL_ADDRESS = os.environ['POOL_ADDRESS']
 TOKEN_ADDRESS = os.environ['TOKEN_ADDRESS']
 RELAYER_URL = os.environ['RELAYER_URL']
 MNEMONIC = os.environ['MNEMONIC']
+
 
 """
 Returns:
@@ -27,7 +40,7 @@ Returns:
 """
 res = driver.execute_async_script(
     "const callback = arguments[arguments.length - 1];"
-    "const result = await window.start();"
+    "const result = await window.start(...arguments);"
     "callback(result);",
     RPC_URL,
     POOL_ADDRESS,
@@ -35,6 +48,14 @@ res = driver.execute_async_script(
     RELAYER_URL,
     MNEMONIC,
 )
+
+logs = driver.get_log("browser")
+print("Browser logs:")
+for log in logs:
+    print(log)
+
+# Close the WebDriver
+driver.quit()
 
 print("Results:")
 print("\nDeposit Times:")
