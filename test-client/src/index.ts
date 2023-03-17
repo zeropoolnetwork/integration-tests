@@ -21,6 +21,7 @@ class Context {
       treeVkUrl: './tree_verification_key.json',
     };
 
+    console.log('Initializing worker...');
     const { worker, snarkParams } = await init(snarkParamsConfig);
 
     const provider = new HDWalletProvider({
@@ -33,6 +34,8 @@ class Context {
     const network = new EvmNetwork(rpcUrl);
 
     const sk = deriveSpendingKey(mnemonic, NetworkType.ethereum);
+
+    console.log('Creating ZeropoolClient...')
     const zpClient = await ZeropoolClient.create({
       sk,
       worker,
@@ -121,20 +124,28 @@ global.start = async function start(rpcUrl: string, poolAddress: string, tokenAd
   // const publicAddress = ctx.evmClient.getAddress();
   const shieldedAddress = ctx.zpClient.generateAddress(tokenAddress);
 
+  console.log('Shielded address generated', shieldedAddress);
+
   // Deposit 3 eth
   const depositTimes = ctx.deposit('3000000000000000000');
   const shieldedBalanceAfterDeposit = await ctx.zpClient.getOptimisticTotalBalance(tokenAddress, true);
   const publicBalanceAfterDeposit = await ctx.evmClient.getTokenBalance(tokenAddress);
+
+  console.log('Deposit done');
 
   // Transfer 1 eth to self
   const transferTimes = ctx.transfer('1000000000000000000', shieldedAddress);
   const shieldedBalanceAfterTransfer = await ctx.zpClient.getOptimisticTotalBalance(tokenAddress, true);
   const publicBalanceAfterTransfer = await ctx.evmClient.getTokenBalance(tokenAddress);
 
+  console.log('Transfer done');
+
   // Should be able to withdraw all 3 eth
   const withdrawTimes = ctx.withdraw('3000000000000000000', shieldedAddress);
   const shieldedBalanceAfterWithdraw = await ctx.zpClient.getOptimisticTotalBalance(tokenAddress, true);
   const publicBalanceAfterWithdraw = await ctx.evmClient.getTokenBalance(tokenAddress);
+
+  console.log('Withdraw done');
 
   return {
     depositTimes,
