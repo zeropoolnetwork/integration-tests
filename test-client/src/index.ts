@@ -5,6 +5,8 @@ import { deriveSpendingKey } from 'zeropool-client-js/lib/utils';
 import { NetworkType } from 'zeropool-client-js/lib/network-type';
 import { EvmNetwork } from 'zeropool-client-js/lib/networks/evm';
 
+import workersManifest from './manifest.json';
+
 class Context {
   constructor(
     public zpClient: ZeropoolClient,
@@ -16,15 +18,13 @@ class Context {
   static async create(rpcUrl: string, poolAddress: string, tokenAddress: string, relayerUrl: string, mnemonic: string): Promise<Context> {
     const snarkParamsConfig = {
       transferParamsUrl: './params/transfer_params.bin',
-      treeParamsUrl: './params/tree_params.bin',
       transferVkUrl: './params/transfer_verification_key.json',
-      treeVkUrl: './params/tree_verification_key.json',
     };
 
     console.log('Initializing worker...');
     const { worker, snarkParams } = await init(snarkParamsConfig, {
-      workerMt: './workerMt.js',
-      workerSt: './workerSt.js',
+      workerMt: workersManifest['workerMt.js'],
+      workerSt: workersManifest['workerSt.js'],
     });
 
     const provider = new HDWalletProvider({
@@ -73,7 +73,7 @@ class Context {
     const [jobId, txTime] = await measureTime(async () => {
       console.log('Deposit from', await this.evmClient.getAddress());
 
-      return await this.zpClient.deposit(this.tokenAddress, BigInt(amount), (data) => this.evmClient.sign(data), null, BigInt(0), []);
+      return await this.zpClient.deposit(this.tokenAddress, BigInt(amount), (data) => this.evmClient.sign(data), null, 0, []);
     });
 
     const [, fullTime] = await measureTime(async () => {
@@ -137,7 +137,7 @@ global.start = async function start(rpcUrl: string, poolAddress: string, tokenAd
 
   const ctx = await Context.create(rpcUrl, poolAddress, tokenAddress, relayerUrl, mnemonic);
 
-  // const publicAddress = ctx.evmClient.getAddress();
+  const publicAddress = await ctx.evmClient.getAddress();
   const shieldedAddress = ctx.zpClient.generateAddress(tokenAddress);
 
   console.log('Shielded address generated', shieldedAddress);
@@ -168,7 +168,7 @@ global.start = async function start(rpcUrl: string, poolAddress: string, tokenAd
   console.log('Transfer done');
 
   // Should be able to withdraw all 3 eth
-  const withdrawTimes = await ctx.withdraw('3000000000000000000', shieldedAddress);
+  const withdrawTimes = await ctx.withdraw('3000000000000000000', publicAddress);
   // const shieldedBalanceAfterWithdraw = await ctx.zpClient.getOptimisticTotalBalance(tokenAddress, true);
   // const publicBalanceAfterWithdraw = await ctx.evmClient.getTokenBalance(tokenAddress);
 

@@ -43,7 +43,7 @@ module.exports = {
     new CleanWebpackPlugin(),
     new CopyPlugin({
       patterns: [
-        { from: '*', context: 'build-workers' }
+        { from: '*', context: 'workers' }
       ],
     }),
     new HtmlWebpackPlugin({
