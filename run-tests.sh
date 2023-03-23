@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 echo "Building the client..."
 yarn --cwd ./test-client build
 
@@ -13,5 +14,5 @@ cleanup() {
 trap cleanup EXIT INT
 
 echo "Running the selenium test..."
-python3 selenium_test.py
+python3 tests/selenium_test.py
 

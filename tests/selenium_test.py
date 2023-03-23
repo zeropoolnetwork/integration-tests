@@ -3,6 +3,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from dotenv import load_dotenv
+import stats_db
 
 load_dotenv()
 
@@ -11,12 +12,11 @@ capabilities["goog:loggingPrefs"] = {"browser": "ALL"}
 options = webdriver.ChromeOptions()
 # options.add_argument("--headless")
 options.add_argument("--disable-web-security")
-options.add_argument("--allow-running-insecure-content")
-options.add_argument("--enable-features=SharedArrayBuffer")
+# options.add_argument("--allow-running-insecure-content")
+# options.add_argument("--enable-features=SharedArrayBuffer")
+
 driver = webdriver.Chrome(options=options, desired_capabilities=capabilities)
-
 driver.set_script_timeout(24 * 60 * 60)
-
 driver.get(os.environ['CLIENT_URL'] or "http://localhost:3000")
 
 RPC_URL = os.environ['RPC_URL']
@@ -38,7 +38,8 @@ res = driver.execute_async_script(
     "  const result = await window.start(...arguments);"
     "  callback(result);"
     "} catch (e) {"
-    "  callback(e);"
+    "  console.error(e);"
+    "  throw e;"
     "}",
     RPC_URL,
     POOL_ADDRESS,
