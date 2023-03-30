@@ -1,13 +1,8 @@
-use std::ptr::null;
+use std::path::PathBuf;
 
-use bip32::{
-    secp256k1::ecdsa::{
-        signature::{hazmat::PrehashSigner, Signer},
-        Signature,
-    },
-    ChildNumber, DerivationPath, ExtendedPrivateKey, Language, Mnemonic, Prefix, XPrv,
-};
+use bip32::{ChildNumber, DerivationPath, XPrv};
 use bip39::Mnemonic as Bip39Mnemonic;
+use bpaf::Bpaf;
 use libzeropool_rs::{
     client::{state::State, TxType, UserAccount},
     libzeropool::{
@@ -66,27 +61,34 @@ fn tx_proof(
     prove(&params, &public, &secret, circuit)
 }
 
+#[derive(Bpaf)]
+#[bpaf(options)]
+struct Args {
+    #[bpaf(short)]
+    pub mnemonic: String,
+
+    #[bpaf(short, fallback(10))]
+    pub num_transactions: usize,
+
+    #[bpaf(short, fallback("txs.json".parse().unwrap()))]
+    pub out_path: PathBuf,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = args().run();
+
     let rng = &mut rand::thread_rng();
-
-    let mnemonic = std::env::args().nth(1).unwrap();
-    let num_transactions = std::env::args()
-        .nth(2)
-        .map(|s| s.parse::<u32>().unwrap())
-        .unwrap_or(10);
-
-    let m = Bip39Mnemonic::parse_in_normalized(Default::default(), &mnemonic).unwrap();
+    let m = Bip39Mnemonic::parse_in_normalized(Default::default(), &args.mnemonic).unwrap();
     let seed = m.to_seed_normalized("");
-
     let child_path = "m/44'/60'/0'/0".parse::<DerivationPath>()?;
 
     let params_bin = std::fs::read("../params/transfer_params.bin").unwrap();
     let params = Parameters::<Bn256>::read(&mut params_bin.as_slice(), true, true).unwrap();
 
-    let mut txs = vec![];
-    for n in 0..num_transactions {
+    let mut txs = Vec::with_capacity(args.num_transactions);
+    for n in 0..args.num_transactions {
         let mut path = child_path.clone();
-        path.push(ChildNumber::new(n, false)?);
+        path.push(ChildNumber::new(n as u32, false)?);
         let child_xprv = XPrv::derive_from_path(&seed, &path)?;
 
         let sk = rng.gen();
@@ -96,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let serialized = serde_json::to_string_pretty(&txs).unwrap();
     println!("{serialized}");
-    std::fs::write("../txs.json", serialized).unwrap();
+    std::fs::write(args.out_path, serialized).unwrap();
 
     Ok(())
 }
@@ -149,18 +151,6 @@ fn generate_transaction(
 
     // let signature = Key::sign(&signing_key.into(), &data, None).unwrap();
     let compact = sign(&nullifier_bytes, &signing_key);
-
-    // println!("V: {}", s.v);
-
-    // if s.v == 28 {
-    //     compact[]
-    // }
-
-    // let signature: Signature = signing_key.sign_prehash(&hash).unwrap();
-    // let (r, s) = signature.split_bytes();
-    // let sig = RecoverableSignature::from_compact(&r, &s, signature.recovery_id().to_i32()).unwrap();
-
-    // let signature = signature.as_ref().to_vec();
 
     let tx_request = TxDataRequest {
         tx_type: "0000", // Deposit
