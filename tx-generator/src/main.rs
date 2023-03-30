@@ -74,7 +74,7 @@ struct Args {
     #[bpaf(short, fallback(10))]
     pub num_transactions: usize,
 
-    #[bpaf(short, fallback("txs.json".parse().unwrap()))]
+    #[bpaf(short, fallback("txs.json".into()))]
     pub out_path: PathBuf,
 }
 
