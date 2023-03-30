@@ -81,13 +81,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = args().run();
 
     let rng = &mut rand::thread_rng();
-    let m = Bip39Mnemonic::parse_in_normalized(Default::default(), &args.mnemonic).unwrap();
+    let m = Bip39Mnemonic::parse_in_normalized(Default::default(), &args.mnemonic)?;
     let seed = m.to_seed_normalized("");
     let child_path = "m/44'/60'/0'/0".parse::<DerivationPath>()?;
 
-    let params_bin = std::fs::read("../params/transfer_params.bin").unwrap();
-    let params = Parameters::<Bn256>::read(&mut params_bin.as_slice(), true, true).unwrap();
+    let params_bin = std::fs::read("../params/transfer_params.bin")?;
+    let params = Parameters::<Bn256>::read(&mut params_bin.as_slice(), true, true)?;
 
+    println!("Generating deposit signatures...");
     let mut txs = Vec::with_capacity(args.num_transactions);
     for n in 0..args.num_transactions {
         let mut path = child_path.clone();
@@ -97,17 +98,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let sk = rng.gen();
         let state = State::init_test(POOL_PARAMS.clone());
         let account = UserAccount::new(sk, state, POOL_PARAMS.clone());
-        let tx_data = account
-            .create_tx(
-                TxType::Deposit {
-                    fee: BoundedNum::new_unchecked(Num::ZERO),
-                    deposit_amount: BoundedNum::new_unchecked(Num::ONE),
-                    outputs: vec![],
-                },
-                None,
-                None,
-            )
-            .unwrap();
+        let tx_data = account.create_tx(
+            TxType::Deposit {
+                fee: BoundedNum::new_unchecked(Num::ZERO),
+                deposit_amount: BoundedNum::new_unchecked(Num::ONE),
+                outputs: vec![],
+            },
+            None,
+            None,
+        )?;
 
         let nullifier_bytes = tx_data.public.nullifier.to_uint().0.to_big_endian();
         let signature = create_signature(child_xprv, &nullifier_bytes);
@@ -115,6 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         txs.push((tx_data, signature));
     }
 
+    println!("Generating transactions...");
     let final_txs = txs
         .into_iter()
         .map(|(tx, signature)| {
@@ -140,8 +140,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect::<Vec<_>>();
 
     // TODO: Use a streaming writer?
-    let serialized = serde_json::to_string(&final_txs).unwrap();
-    std::fs::write(args.out_path, serialized).unwrap();
+    println!("Serializing transactions...");
+    let serialized = serde_json::to_string(&final_txs)?;
+    println!("Writing transactions to {}...", args.out_path.display());
+    std::fs::write(args.out_path, serialized)?;
 
     Ok(())
 }
