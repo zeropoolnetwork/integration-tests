@@ -24,6 +24,7 @@ use libzeropool_rs::{
     },
 };
 use rand::Rng;
+use rayon::prelude::*;
 use secp256k1::SecretKey;
 use serde::Serialize;
 use web3::{
@@ -80,7 +81,6 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = args().run();
 
-    let rng = &mut rand::thread_rng();
     let m = Bip39Mnemonic::parse_in_normalized(Default::default(), &args.mnemonic)?;
     let seed = m.to_seed_normalized("");
     let child_path = "m/44'/60'/0'/0".parse::<DerivationPath>()?;
@@ -88,36 +88,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params_bin = std::fs::read("../params/transfer_params.bin")?;
     let params = Parameters::<Bn256>::read(&mut params_bin.as_slice(), true, true)?;
 
-    println!("Generating deposit signatures...");
-    let mut txs = Vec::with_capacity(args.num_transactions);
-    for n in 0..args.num_transactions {
-        let mut path = child_path.clone();
-        path.push(ChildNumber::new(n as u32, false)?);
-        let child_xprv = XPrv::derive_from_path(&seed, &path)?;
+    println!("Generating transactions and deposit signatures...");
+    let txs = (0..args.num_transactions)
+        .into_par_iter()
+        .map_init(
+            || rand::thread_rng(),
+            |rng, n| {
+                let mut path = child_path.clone();
+                path.push(ChildNumber::new(n as u32, false).unwrap());
+                let child_xprv = XPrv::derive_from_path(&seed, &path).unwrap();
 
-        let sk = rng.gen();
-        let state = State::init_test(POOL_PARAMS.clone());
-        let account = UserAccount::new(sk, state, POOL_PARAMS.clone());
-        let tx_data = account.create_tx(
-            TxType::Deposit {
-                fee: BoundedNum::new_unchecked(Num::ZERO),
-                deposit_amount: BoundedNum::new_unchecked(Num::ONE),
-                outputs: vec![],
+                let sk = rng.gen();
+                let state = State::init_test(POOL_PARAMS.clone());
+                let account = UserAccount::new(sk, state, POOL_PARAMS.clone());
+                let tx_data = account
+                    .create_tx(
+                        TxType::Deposit {
+                            fee: BoundedNum::new_unchecked(Num::ZERO),
+                            deposit_amount: BoundedNum::new_unchecked(Num::ONE),
+                            outputs: vec![],
+                        },
+                        None,
+                        None,
+                    )
+                    .unwrap();
+
+                let nullifier_bytes = tx_data.public.nullifier.to_uint().0.to_big_endian();
+                let signature = create_signature(child_xprv, &nullifier_bytes);
+
+                (tx_data, signature)
             },
-            None,
-            None,
-        )?;
+        )
+        .collect::<Vec<_>>();
 
-        let nullifier_bytes = tx_data.public.nullifier.to_uint().0.to_big_endian();
-        let signature = create_signature(child_xprv, &nullifier_bytes);
-
-        txs.push((tx_data, signature));
-    }
-
-    println!("Generating transactions...");
+    println!("Generating transaction proofs...");
     let final_txs = txs
         .into_iter()
-        .map(|(tx, signature)| {
+        .enumerate()
+        .map(|(i, (tx, signature))| {
             let start_time = std::time::Instant::now();
             let (inputs, proof) = tx_proof(&params, tx.public.clone(), tx.secret.clone());
 
@@ -130,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let elapsed = start_time.elapsed();
             println!(
-                "{}: Transaction generation time: {}ms",
+                "{i} {}: Transaction generation time: {}ms",
                 signature.1,
                 elapsed.as_millis()
             );
