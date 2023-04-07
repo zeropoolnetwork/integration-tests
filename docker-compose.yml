@@ -1,29 +1,30 @@
 version: "3.9"
 
 services:
-  # nginx_proxy:
-  #   image: nginxproxy/nginx-proxy:0.9.3
-  #   container_name: nginx_proxy
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - /var/run/docker.sock:/tmp/docker.sock:ro
-  #     - certs:/etc/nginx/certs:ro
-  #     - vhost:/etc/nginx/vhost.d
-  #     - html:/usr/share/nginx/html
-
   hardhat_node:
     image: voidxnull/zp-hardhat-node
     container_name: hardhat_node
     ports:
       - "8545:8545"
+    environment:
+      - MOCK_TREE_VERIFIER=true
+      - NUM_ACCOUNTS=10000
 
   redis:
     image: redis:6.2.6
     container_name: redis
     command: [ redis-server, --appendonly, 'yes' ]
     restart: always
+
+  # relayer_rs:
+  #   image: voidxnull/zeropool-relayer-server:latest
+  #   container_name: relayer_rs
+  #   restart: always
+  #   depends_on:
+  #     - redis
+  #     - hardhat_node
+  #   environment:
+
 
   relayer:
     image: voidxnull/zeropool-relayer:0.1.29
@@ -43,13 +44,9 @@ services:
       - RELAYER_FEE=0
       - MAX_NATIVE_AMOUNT_FAUCET=0
       - RELAYER_GAS_LIMIT=2000000
-      # - GAS_PRICE_FALLBACK=
-      # - GAS_PRICE_UPDATE_INTERVAL=
+      - MOCK_PROVER=true
       - GAS_PRICE_ESTIMATION_TYPE=web3
       - RELAYER_LOG_LEVEL=debug
-      - VIRTUAL_HOST=test.relayer.zeropool.network
-      - LETSENCRYPT_HOST=test.relayer.zeropool.network
-      - LETSENCRYPT_EMAIL=mail@test.com
     volumes:
       - /root/params:/app/zp-relayer/params
     ports:
