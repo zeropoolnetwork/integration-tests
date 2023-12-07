@@ -1,11 +1,12 @@
 import json
 from locust import HttpUser, task, between
 
-CREATE_TX_PATH = "/sendTransactions"
+CREATE_TX_PATH = "/transactions"
 
 with open("txs.json") as f:
     transactions = json.load(f) or []
 
+print("num txs", len(transactions))
 
 class MyUser(HttpUser):
     wait_time = between(1, 2)
@@ -14,7 +15,7 @@ class MyUser(HttpUser):
     def create_transaction(self):
         tx = transactions.pop(0)
 
-        response = self.client.post(CREATE_TX_PATH, json=[tx])
+        response = self.client.post(CREATE_TX_PATH, json=tx)
         assert response.ok
         job_id = response.json()["jobId"]
 
@@ -23,8 +24,14 @@ class MyUser(HttpUser):
             state = response["state"]
             if state == "completed":
                 break
+            elif state == "in_progress":
+                print("In progress")
+            elif state == "pending":
+                print("pending")
             elif state == "failed":
                 raise Exception(response["error"])
+            else:
+                raise Exception("unknown job status")
 
         self.environment.events.request_success.fire(
             request_type="POST",
